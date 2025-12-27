@@ -1,0 +1,63 @@
+{
+  "cost": 10,
+  "name": "More Damage",
+  "description": "You hit harder",
+  "effects": [
+    {
+      "type": "damage",
+      "value": 1.0
+    }
+  ],
+  "children": [
+    {
+      "cost": 15,
+      "name": "More Range",
+      "description": "You git more stuff",
+      "effects": [
+        {
+          "type": "range",
+          "value": 5.0
+        }
+      ],
+      "children": [
+        {
+          "cost": 15,
+          "name": "More Range 2",
+          "description": "You git more stuff",
+          "effects": [
+            {
+              "type": "range",
+              "value": 5.0
+            }
+          ],
+          "children": []
+        }
+      ]
+    },
+    {
+      "cost": 20,
+      "name": "Faster",
+      "description": "You git faster",
+      "effects": [
+        {
+          "type": "tick_rate",
+          "value": -0.05
+        }
+      ],
+      "children": [
+        {
+          "cost": 25,
+          "name": "Faster 2",
+          "description": "You git faster",
+          "effects": [
+            {
+              "type": "tick_rate",
+              "value": -0.05
+            }
+          ],
+          "children": []
+        }
+      ]
+    }
+  ]
+}
