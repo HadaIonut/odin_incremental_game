@@ -2,34 +2,56 @@
   "cost": 10,
   "name": "More Damage",
   "description": "You hit harder",
+  "available": true,
+  "max_buys": 5,
   "effects": [
     {
-      "type": "damage",
+      "type": 1,
       "value": 1.0
     }
   ],
+  "positioning": {
+    "location": [
+      0,
+      0
+    ]
+  },
   "children": [
     {
       "cost": 15,
       "name": "More Range",
       "description": "You git more stuff",
+      "max_buys": 5,
       "effects": [
         {
-          "type": "range",
+          "type": 2,
           "value": 5.0
         }
       ],
+      "positioning": {
+        "location": [
+          1,
+          1
+        ]
+      },
       "children": [
         {
           "cost": 15,
           "name": "More Range 2",
           "description": "You git more stuff",
+          "max_buys": 5,
           "effects": [
             {
-              "type": "range",
+              "type": 2,
               "value": 5.0
             }
           ],
+          "positioning": {
+            "location": [
+              1,
+              0
+            ]
+          },
           "children": []
         }
       ]
@@ -38,23 +60,37 @@
       "cost": 20,
       "name": "Faster",
       "description": "You git faster",
+      "max_buys": 5,
       "effects": [
         {
-          "type": "tick_rate",
+          "type": 3,
           "value": -0.05
         }
       ],
+      "positioning": {
+        "location": [
+          1,
+          -1
+        ]
+      },
       "children": [
         {
           "cost": 25,
           "name": "Faster 2",
           "description": "You git faster",
+          "max_buys": 5,
           "effects": [
             {
-              "type": "tick_rate",
+              "type": 3,
               "value": -0.05
             }
           ],
+          "positioning": {
+            "location": [
+              1,
+              0
+            ]
+          },
           "children": []
         }
       ]

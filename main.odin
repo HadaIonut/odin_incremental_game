@@ -24,6 +24,9 @@ Polygon :: struct {
 Game_State :: struct {
 	center:                 rl.Vector2,
 	shop_camera:            rl.Camera2D,
+	shop_mouse_location:    rl.Vector2,
+	shop_mouse_clicked:     bool,
+	shop_mouse_down:        bool,
 	polys:                  []Polygon,
 	new_polygon_change:     f32,
 	special_polygon_change: f32,
@@ -38,17 +41,33 @@ Game_State :: struct {
 	current_game_screen:    Game_Screens,
 }
 
+Effect_types :: enum {
+	DAMAGE    = 1,
+	RANGE     = 2,
+	TICK_RATE = 3,
+}
+
 Effect :: struct {
-	type:  string,
+	type:  Effect_types,
 	value: f32,
 }
 
+Positioning :: struct {
+	name:        cstring,
+	name_length: int,
+	location:    rl.Vector2,
+}
+
 Upgrade :: struct {
-	cost:        int,
-	children:    []Upgrade,
-	name:        string,
-	description: string,
-	effects:     []Effect,
+	cost:         i32,
+	max_buys:     uint,
+	current_buys: uint,
+	available:    bool,
+	children:     []Upgrade,
+	name:         string,
+	description:  string,
+	effects:      []Effect,
+	positioning:  Positioning,
 }
 
 Game_Screens :: enum {
@@ -87,7 +106,7 @@ main :: proc() {
 	game_state.shop_camera.zoom = 1.0
 	game_state.shop_camera.rotation = 0
 	game_state.center = rl.Vector2{f32(game_state.width) / f32(2), f32(game_state.height) / f32(2)}
-	game_state.money = 0
+	game_state.money = 1000
 
 	game_state.polys = generate_polygons(game_state.polygon_count)
 
@@ -95,6 +114,10 @@ main :: proc() {
 	time_passed := f32(0)
 
 	for !rl.WindowShouldClose() {
+		game_state.shop_mouse_location = rl.GetScreenToWorld2D(
+			rl.GetMousePosition(),
+			game_state.shop_camera,
+		)
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.LIGHTGRAY)
 
@@ -111,6 +134,14 @@ main :: proc() {
 			game_state.current_game_screen =
 				game_state.current_game_screen == Game_Screens.Game ? Game_Screens.Shop : Game_Screens.Game
 		}
+
+		text := strings.clone_to_cstring(
+			fmt.tprintf("%v", game_state.money),
+			context.temp_allocator,
+		)
+
+		rl.DrawText(text, 10, 10, 20, rl.BLACK)
+
 
 		free_all(context.temp_allocator)
 
@@ -256,10 +287,6 @@ do_damage :: proc(polygon: ^Polygon, mouse_location: ^rl.Vector2) {
 }
 
 render_game :: proc(time_passed: ^f32) {
-	text := strings.clone_to_cstring(fmt.tprintf("%v", game_state.money), context.temp_allocator)
-
-	rl.DrawText(text, 10, 10, 20, rl.BLACK)
-
 	rl.DrawCircle(i32(game_state.center[0]), i32(game_state.center[1]), 10, rl.BLACK)
 
 	mouse_location := should_do_damage(time_passed)
@@ -280,58 +307,119 @@ x_padding :: 10
 font_size :: 15
 y_padding :: 4
 
-render_upgrades :: proc(drawing: []Upgrade, draw_x, start_draw_y: i32) {
-	if len(drawing) == 0 {return}
-	draw_x, draw_y := draw_x, start_draw_y
-	max_text_len := i32(0)
+handle_buy_upgrade_click :: proc(upgrade: ^Upgrade) {
+	game_state.money -= upgrade.cost
+	upgrade.current_buys += 1
+	for effect in upgrade.effects {
+		switch effect.type {
+		case .DAMAGE:
+			game_state.damage += i32(effect.value)
+		case .RANGE:
+			game_state.mouse_radius += effect.value
+		case .TICK_RATE:
+			game_state.damage_time += effect.value
+		}
+	}
+	for &child in upgrade.children {
+		child.available = true
+	}
+}
 
-	total_children := i32(0)
+get_button_color :: proc(rectangle: rl.Rectangle, upgrade: ^Upgrade, hovers: bool) -> rl.Color {
+	if !upgrade.available {return rl.DARKGRAY}
 
-	for top in drawing {
-		c_text := strings.clone_to_cstring(top.name, context.temp_allocator)
-		text_len := rl.MeasureText(c_text, font_size)
+	if upgrade.max_buys == upgrade.current_buys {return rl.GRAY}
 
-		if text_len > max_text_len {
-			max_text_len = text_len
+	if hovers &&
+	   game_state.shop_mouse_down &&
+	   game_state.money >= upgrade.cost {return rl.DARKGRAY}
+
+	//TODO maybe add a cute jiggle animation?
+	if hovers && game_state.shop_mouse_down {return rl.RED}
+
+	if hovers {return rl.WHITE}
+
+	return rl.LIGHTGRAY
+}
+
+render_button :: proc(rectangle: rl.Rectangle, upgrade: ^Upgrade) {
+	hovers := rl.CheckCollisionPointRec(game_state.shop_mouse_location, rectangle)
+	color := get_button_color(rectangle, upgrade, hovers)
+
+	if hovers &&
+	   game_state.shop_mouse_clicked &&
+	   game_state.money >= upgrade.cost &&
+	   upgrade.max_buys > upgrade.current_buys {
+		handle_buy_upgrade_click(upgrade)
+	}
+	rl.DrawRectangleRec(rectangle, color)
+	rl.DrawText(
+		upgrade.positioning.name,
+		i32(rectangle.x) + x_padding / 2,
+		i32(rectangle.y) + y_padding / 2,
+		font_size,
+		rl.BLACK,
+	)
+	rl.DrawRectangleLinesEx(rectangle, 1, rl.BLACK)
+}
+
+height_middle :: (font_size + y_padding) / 2
+
+render_parent_line :: proc(drawing: ^Upgrade) -> rl.Vector2 {
+	start := rl.Vector2 {
+		drawing.positioning.location[0] + f32(drawing.positioning.name_length + x_padding),
+		drawing.positioning.location[1] + height_middle,
+	}
+	middle := rl.Vector2 {
+		drawing.positioning.location[0] +
+		f32(drawing.positioning.name_length + x_padding) +
+		x_margin / 2,
+		drawing.positioning.location[1] + height_middle,
+	}
+	rl.DrawLineV(start, middle, rl.BLACK)
+
+	return middle
+}
+
+render_upgrades :: proc(drawing: ^Upgrade) {
+	render_button(
+		rl.Rectangle {
+			drawing.positioning.location[0],
+			drawing.positioning.location[1],
+			f32(drawing.positioning.name_length + x_padding),
+			font_size + y_padding,
+		},
+		drawing,
+	)
+	if len(drawing.children) == 0 {return}
+	middle := render_parent_line(drawing)
+
+	for &child in drawing.children {
+		middle_end := rl.Vector2{middle[0], child.positioning.location[1] + height_middle}
+		end := rl.Vector2 {
+			child.positioning.location.x,
+			child.positioning.location.y + height_middle,
 		}
 
-		rl.DrawRectangle(draw_x, draw_y, text_len + x_padding, font_size + y_padding, rl.GRAY)
-		rl.DrawText(c_text, draw_x + x_padding / 2, draw_y + y_padding / 2, font_size, rl.BLACK)
-		rl.DrawRectangleLines(
-			draw_x,
-			draw_y,
-			text_len + x_padding,
-			font_size + y_padding,
-			rl.BLACK,
-		)
+		rl.DrawLineV(middle, middle_end, rl.BLACK)
+		rl.DrawLineV(middle_end, end, rl.BLACK)
 
-		draw_y += font_size + 5
-		total_children += i32(len(top.children))
-	}
-
-	current_drawn_children := i32(0)
-	for top in drawing {
-		current_drawn_children += i32(len(top.children))
-		render_upgrades(
-			top.children,
-			draw_x + max_text_len + x_padding + x_padding,
-			start_draw_y - (font_size + y_padding) * (total_children - current_drawn_children),
-		)
+		render_upgrades(&child)
 	}
 }
 
 render_shop :: proc() {
 	rl.BeginMode2D(game_state.shop_camera)
+	game_state.shop_mouse_clicked = rl.IsMouseButtonPressed(rl.MouseButton.LEFT)
+	game_state.shop_mouse_down = rl.IsMouseButtonDown(rl.MouseButton.LEFT)
 
-	temp := []Upgrade{upgrades}
+	render_upgrades(&upgrades)
 
-	render_upgrades(temp, 0, 0)
-
-	if rl.IsMouseButtonDown(rl.MouseButton.LEFT) {
-		mouse_delta := rl.GetMouseDelta()
-		updated_mouse_position := rl.GetMousePosition() - mouse_delta
+	if game_state.shop_mouse_down {
+		mouse_delta := rl.GetMouseDelta() / game_state.shop_camera.zoom
 		game_state.shop_camera.target -= mouse_delta
 	}
+	game_state.shop_camera.zoom += rl.GetMouseWheelMove() / 3
 
 	rl.EndMode2D()
 }
