@@ -29,6 +29,15 @@ y_margin :: 10
 update_positioning :: proc(upgrade: ^Upgrade, parent: ^Upgrade) {
 	upgrade.positioning.name = strings.clone_to_cstring(upgrade.name)
 	upgrade.positioning.name_length = int(rl.MeasureText(upgrade.positioning.name, font_size))
+	upgrade.positioning.description = strings.clone_to_cstring(upgrade.description)
+	upgrade.positioning.description_length = int(
+		rl.MeasureText(upgrade.positioning.description, font_size),
+	)
+	upgrade.positioning.cost = strings.clone_to_cstring(
+		strings.concatenate([]string{"Cost: ", fmt.tprintf("%v", upgrade.cost)}),
+	)
+	upgrade.positioning.cost_length = int(rl.MeasureText(upgrade.positioning.cost, font_size))
+
 
 	parent_name_len := parent == nil ? 0 : parent.positioning.name_length
 	parent_location := parent == nil ? rl.Vector2{} : parent.positioning.location

@@ -31,30 +31,10 @@
       "positioning": {
         "location": [
           1,
-          1
+          0
         ]
       },
-      "children": [
-        {
-          "cost": 15,
-          "name": "More Range 2",
-          "description": "You git more stuff",
-          "max_buys": 5,
-          "effects": [
-            {
-              "type": 2,
-              "value": 5.0
-            }
-          ],
-          "positioning": {
-            "location": [
-              1,
-              0
-            ]
-          },
-          "children": []
-        }
-      ]
+      "children": []
     },
     {
       "cost": 20,
@@ -73,16 +53,35 @@
           -1
         ]
       },
+      "children": []
+    },
+    {
+      "cost": 20,
+      "name": "Time",
+      "description": "Increase rount time",
+      "max_buys": 5,
+      "effects": [
+        {
+          "type": 4,
+          "value": 2
+        }
+      ],
+      "positioning": {
+        "location": [
+          1,
+          -2
+        ]
+      },
       "children": [
         {
-          "cost": 25,
-          "name": "Faster 2",
-          "description": "You git faster",
-          "max_buys": 5,
+          "cost": 30,
+          "name": "Respawn Rate",
+          "description": "Polys respawn more often",
+          "max_buys": 1,
           "effects": [
             {
-              "type": 3,
-              "value": -0.05
+              "type": 5,
+              "value": 0.05
             }
           ],
           "positioning": {
@@ -91,7 +90,46 @@
               0
             ]
           },
-          "children": []
+          "children": [
+            {
+              "cost": 100,
+              "name": "More luck",
+              "description": "Increases lucky asteroid chance",
+              "max_buys": 5,
+              "effects": [
+                {
+                  "type": 8,
+                  "value": 0.01
+                }
+              ],
+              "positioning": {
+                "location": [
+                  1,
+                  0
+                ]
+              },
+              "children": []
+            },
+            {
+              "cost": 100,
+              "name": "More Polys",
+              "description": "Every round more polys spawn",
+              "max_buys": 5,
+              "effects": [
+                {
+                  "type": 6,
+                  "value":5 
+                }
+              ],
+              "positioning": {
+                "location": [
+                  1,
+                  0
+                ]
+              },
+              "children": []
+            }
+          ]
         }
       ]
     }
